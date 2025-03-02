@@ -1,0 +1,64 @@
+{
+    "checks": [
+      {
+        "category": "Cryptographic Weakness",
+        "issue": "Deprecated Hash Functions",
+        "patterns": ["md5", "sha1"],
+        "severity": "HIGH"
+      },
+      {
+        "category": "Cryptographic Weakness",
+        "issue": "Weak Asymmetric Algorithms",
+        "patterns": ["rsa\\s*≤\\s*2048", "ecc", "dsa"],
+        "severity": "HIGH"
+      },
+      {
+        "category": "Cryptographic Weakness",
+        "issue": "Insecure Symmetric Encryption",
+        "patterns": ["des", "3des", "rc4"],
+        "severity": "HIGH"
+      },
+      {
+        "category": "Cryptographic Weakness",
+        "issue": "Weak Encryption Modes",
+        "patterns": ["ecb\\s*mode", "weak\\s*iv", "default\\s*salt"],
+        "severity": "HIGH"
+      },
+      {
+        "category": "Hardcoded Secrets",
+        "issue": "Hardcoded Keys & Credentials",
+        "patterns": ["api\\s*key", "password", "private\\s*key", "ssh\\s*key"],
+        "severity": "CRITICAL"
+      },
+      {
+        "category": "Sensitive Data",
+        "issue": "Plaintext Storage",
+        "patterns": ["pii", "ssn", "passport\\s*number", "credit\\s*card", "bank\\s*details"],
+        "severity": "HIGH"
+      },
+      {
+        "category": "Misconfigurations",
+        "issue": "Certificate Issues",
+        "patterns": ["expired\\s*certificate", "self-signed\\s*certificate"],
+        "severity": "MEDIUM"
+      },
+      {
+        "category": "Misconfigurations",
+        "issue": "TLS/SSL Implementation",
+        "patterns": ["sslv2", "sslv3", "tls\\s*1.0", "tls\\s*1.1"],
+        "severity": "HIGH"
+      },
+      {
+        "category": "Misconfigurations",
+        "issue": "Unencrypted Communication",
+        "patterns": ["http:\\/\\/"],
+        "severity": "HIGH"
+      },
+      {
+        "category": "Misconfigurations",
+        "issue": "Weak/Default Cryptographic Params",
+        "patterns": ["default\\s*iv", "default\\s*salt", "hardcoded\\s*cryptographic\\s*params"],
+        "severity": "HIGH"
+      }
+    ]
+  }
