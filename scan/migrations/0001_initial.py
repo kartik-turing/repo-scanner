@@ -8,35 +8,57 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Scan',
+            name="Scan",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('scan_id', models.CharField(max_length=36, unique=True)),
-                ('repo_url', models.URLField()),
-                ('started_at', models.DateTimeField(auto_now_add=True)),
-                ('completed_at', models.DateTimeField(blank=True, null=True)),
-                ('status', models.CharField(default='pending', max_length=20)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("scan_id", models.CharField(max_length=36, unique=True)),
+                ("repo_url", models.URLField()),
+                ("started_at", models.DateTimeField(auto_now_add=True)),
+                ("completed_at", models.DateTimeField(blank=True, null=True)),
+                ("status", models.CharField(default="pending", max_length=20)),
             ],
         ),
         migrations.CreateModel(
-            name='Vulnerability',
+            name="Vulnerability",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('file_path', models.CharField(max_length=255)),
-                ('line_number', models.IntegerField()),
-                ('severity', models.CharField(max_length=20)),
-                ('issue_type', models.CharField(max_length=100)),
-                ('issue_category', models.CharField(max_length=100)),
-                ('issue_detail', models.JSONField()),
-                ('recommendation', models.TextField()),
-                ('confidence', models.FloatField()),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
-                ('scan', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='vulnerabilities', to='scan.scan')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("file_path", models.CharField(max_length=255)),
+                ("line_number", models.IntegerField()),
+                ("severity", models.CharField(max_length=20)),
+                ("issue_type", models.CharField(max_length=100)),
+                ("issue_category", models.CharField(max_length=100)),
+                ("issue_detail", models.JSONField()),
+                ("recommendation", models.TextField()),
+                ("confidence", models.FloatField()),
+                ("timestamp", models.DateTimeField(auto_now_add=True)),
+                (
+                    "scan",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="vulnerabilities",
+                        to="scan.scan",
+                    ),
+                ),
             ],
         ),
     ]

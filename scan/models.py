@@ -1,17 +1,23 @@
 from django.db import models
 
+
 class Scan(models.Model):
-    scan_id = models.CharField(max_length=36, unique=True)  
+    scan_id = models.CharField(max_length=36, unique=True)
     repo_url = models.URLField()
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
-    status = models.CharField(max_length=20, default='pending')  # pending, in_progress, completed
+    status = models.CharField(
+        max_length=20, default="pending"
+    )  # pending, in_progress, completed
 
     def __str__(self):
         return f"Scan {self.scan_id}"
 
+
 class Vulnerability(models.Model):
-    scan = models.ForeignKey(Scan, on_delete=models.CASCADE, related_name='vulnerabilities')
+    scan = models.ForeignKey(
+        Scan, on_delete=models.CASCADE, related_name="vulnerabilities"
+    )
     file_path = models.CharField(max_length=255)
     line_number = models.IntegerField()
     severity = models.CharField(max_length=20)  # HIGH, MEDIUM, LOW

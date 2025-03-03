@@ -1,5 +1,6 @@
-import re
 import math
+import re
+
 
 def calculate_entropy(string):
     if not string:
@@ -9,6 +10,7 @@ def calculate_entropy(string):
         p = string.count(char) / len(string)
         entropy -= p * math.log2(p)
     return entropy
+
 
 def detect_high_entropy_strings(content, threshold=4.5):
     strings = re.findall(r'[\'"]([^\'"]{10,})[\'"]', content)
