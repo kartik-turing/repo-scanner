@@ -1,12 +1,16 @@
-from rest_framework.views import APIView
+import uuid
+
+from asgiref.sync import async_to_sync, sync_to_async
+from channels.layers import get_channel_layer
 from drf_yasg.utils import swagger_auto_schema
-from scan.serializers import ScanRequestSerializer
-from django.http import JsonResponse
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .consumers import ScanConsumer
+from scan.serializers import ScanRequestSerializer
 
-consumer = ScanConsumer()
+from .models import Scan
+
 
 class StartScanView(APIView):
     """
@@ -15,11 +19,10 @@ class StartScanView(APIView):
 
     permission_classes = [AllowAny]
 
-    # Swagger schema with auto schema
     @swagger_auto_schema(
         request_body=ScanRequestSerializer,
         responses={
-            201: "Returns scanned results",
+            201: "Returns scan ID and status",
             400: "Invalid request",
             422: "Invalid input data",
             500: "Internal server error",
@@ -33,26 +36,50 @@ class StartScanView(APIView):
         # Validate and deserialize the input data
         serializer = ScanRequestSerializer(data=request.data)
 
-        if serializer.is_valid():
-            repo_url = serializer.validated_data.get('repo_url')
-            token = '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'
+        if not serializer.is_valid():
+            return Response(
+                {"status": "Invalid input", "message": serializer.errors}, status=400
+            )
 
-            try:
-                # Call your scanning logic here (same as in the consumer)
-                repo_files = get_repo_files(repo_url, token)
-                scan_results = scan_repo_files(repo_files)
+        repo_url = serializer.validated_data.get("repo_url")
+        token = (
+            "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"  # Replace with your GitHub token
+        )
 
-                return JsonResponse({'status': 'Scan started', 'scan_results': scan_results})
+        try:
+            # Create a new scan record in the database (this is synchronous, no need for sync_to_async)
+            scan = Scan.objects.create(
+                scan_id=str(uuid.uuid4()),  # Generate a unique scan ID
+                repo_url=repo_url,
+                status="in_progress",
+            )
 
-            except Exception as e:
-                return JsonResponse({'status': 'Error', 'message': str(e)}, status=400)
+            # Send the scan ID immediately in the response
+            # This allows the API to return the scan ID immediately without waiting for the scan to complete
+            # Now, the scanning task will continue in the background via WebSocket
 
-        return JsonResponse({'status': 'Invalid input', 'message': serializer.errors}, status=400)
+            # Get the channel layer to send WebSocket messages
+            channel_layer = get_channel_layer()
 
+            # Trigger the scan and vulnerability detection from the WebSocket consumer
+            async_to_sync(channel_layer.group_send)(
+                f"scan_{scan.scan_id}",  # WebSocket group name
+                {
+                    "type": "start_scan",
+                    "scan_id": scan.scan_id,
+                    "repo_url": repo_url,
+                    "token": token,
+                },
+            )
 
-# Helper Functions for Repo File Scanning
-def get_repo_files(repo_url, token):
-    return consumer.get_repo_files(repo_url, token)
+            return Response(
+                {
+                    "status": "Scan started",
+                    "scan_id": scan.scan_id,
+                    "repo_url": repo_url,
+                },
+                status=201,
+            )
 
-def scan_repo_files(repo_files):
-    return consumer.scan_repo_files(repo_files)
+        except Exception as e:
+            return Response({"status": "Error", "message": str(e)}, status=500)
