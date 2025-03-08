@@ -12,6 +12,8 @@ from scan.serializers import ScanRequestSerializer
 from .models import Scan
 
 
+from urllib.parse import urlparse
+
 class StartScanView(APIView):
     """
     Repository scan view
@@ -22,7 +24,7 @@ class StartScanView(APIView):
     @swagger_auto_schema(
         request_body=ScanRequestSerializer,
         responses={
-            201: "Returns scan ID and status",
+            201: "Returns scan WebSocket URL",
             400: "Invalid request",
             422: "Invalid input data",
             500: "Internal server error",
@@ -43,7 +45,7 @@ class StartScanView(APIView):
 
         repo_url = serializer.validated_data.get("repo_url")
         token = (
-            "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"  # Replace with your GitHub token
+            "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"
         )
 
         try:
@@ -54,9 +56,11 @@ class StartScanView(APIView):
                 status="in_progress",
             )
 
-            # Send the scan ID immediately in the response
-            # This allows the API to return the scan ID immediately without waiting for the scan to complete
-            # Now, the scanning task will continue in the background via WebSocket
+            # Retrieve the host (domain) from the request
+            host = request.get_host()
+
+            # Construct the WebSocket URL
+            websocket_url = f"ws://{host}/ws/scan/{scan.scan_id}/"
 
             # Get the channel layer to send WebSocket messages
             channel_layer = get_channel_layer()
@@ -75,7 +79,7 @@ class StartScanView(APIView):
             return Response(
                 {
                     "status": "Scan started",
-                    "scan_id": scan.scan_id,
+                    "websocket_url": websocket_url,
                     "repo_url": repo_url,
                 },
                 status=201,
