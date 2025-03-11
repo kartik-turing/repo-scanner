@@ -1,3 +1,4 @@
+# scanner.py
 import ast
 import asyncio
 import json
@@ -6,27 +7,23 @@ import re
 import shutil
 import subprocess
 from datetime import datetime
-
-import aiofiles  # For asynchronous file I/O
+import aiofiles
 import esprima
 import javalang
 import phply
-from channels.layers import get_channel_layer
-
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-
 from .utils import calculate_entropy, detect_high_entropy_strings
-
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 class RepoScanner:
-    def __init__(self, scan_id, config_path=os.path.join(os.getcwd(), "config.json")):
+    def __init__(self, scan_id, websocket=None, config_path=os.path.join(os.getcwd(), "config.json")):
+        self.websocket = websocket  # Store the WebSocket connection
         self.checks = self.load_config(config_path)
-        self.room_group_name = f"scan_{scan_id}"
+        self.scan_id = scan_id
 
     def load_config(self, config_path):
         try:
@@ -36,6 +33,13 @@ class RepoScanner:
         except Exception as e:
             logger.error(f"Error loading config file: {e}")
             return []
+
+    async def send_message(self, message):
+        """
+        Send a message directly to the WebSocket client.
+        """
+        if self.websocket:
+            await self.websocket.send(text_data=json.dumps(message))
 
     async def scan_repo_files(self, repo_dir, scan_id):
         """
@@ -52,15 +56,12 @@ class RepoScanner:
         vulnerabilities.extend(await self.ssl_tls_checks())
 
         # Send a status message to the WebSocket client
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                "type": "scan_complete",
-                "scan_id": self.scan_id,
-                "status": "complete",
-                "vulnerabilities_found": len(vulnerabilities),
-            },
-        )
+        await self.send_message({
+            "type": "scan_complete",
+            "scan_id": self.scan_id,
+            "status": "complete",
+            "vulnerabilities_found": len(vulnerabilities),
+        })
 
         return vulnerabilities
 
@@ -155,17 +156,13 @@ class RepoScanner:
                 "confidence": 0.98,
             }
 
-            # Send the vulnerability payload to the WebSocket group
-            self.channel_layer = get_channel_layer()
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "vulnerability_detected",
-                    "scan_id": self.scan_id,
-                    "status": "vulnerability_payload",
-                    "vulnerability": vulnerability_payload,
-                },
-            )
+            # Send the vulnerability payload directly to the WebSocket client
+            await self.send_message({
+                "type": "vulnerability_detected",
+                "scan_id": self.scan_id,
+                "status": "vulnerability_payload",
+                "vulnerability": vulnerability_payload,
+            })
         except Exception as e:
             logger.error(f"Error creating vulnerability payload: {e}")
 
@@ -181,7 +178,7 @@ class RepoScanner:
         except Exception as e:
             logger.error(f"Error finding line number: {e}")
             return 0
-    
+
     def extract_code_snippet(self, content, keyword):
         """
         Extract a code snippet around the keyword (e.g., 'md5') in the file content.
